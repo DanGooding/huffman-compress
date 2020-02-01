@@ -6,6 +6,7 @@ typedef bool (*element_cmp) (int, int);
 // TODO hide internals by making heap* alias of void*
 typedef struct {
 
+    // TODO: allow storing non integers
     int *elements;
 
     // number of elements
@@ -22,11 +23,11 @@ typedef struct {
 heap *heap_new_empty(element_cmp want_first_above);
 void heap_delete(heap *);
 
-heap *heap_from_array(int *, int);
+heap *heap_from_array(int *a, int length); // TODO
 
 int heap_pop_top(heap *);
 
-void heap_insert(heap *, int);
+void heap_insert(heap *, int e);
 
 
 
