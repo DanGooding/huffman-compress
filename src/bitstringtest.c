@@ -55,6 +55,17 @@ int main(int argc, char const *argv[]) {
     bitstring_set(primalities, 1, false);
     assert(!bitstring_get(primalities, 1), "set(false) should change value");
 
+    const int k = 20;
+    for (int i = 0; i < k; i++) {
+        bitstring_append(primalities, i % 3 == 0);
+    }
+    int prev_length = primalities->length;
+    for (int i = k-1; i >= 0; i--) {
+        bool b = bitstring_pop(primalities);
+        assert(b == (i % 3 == 0), "pop should return correct value");
+    }
+    assert(primalities->length = prev_length - k, "pop should decrease length by number popped");
+
     bitstring *double_digits = bitstring_substring(primalities, 10, 100);
 
     assert(double_digits->length == 90, "substring length should be length of range");

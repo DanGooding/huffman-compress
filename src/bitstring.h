@@ -23,6 +23,7 @@ bool bitstring_get(const bitstring *, int i);
 void bitstring_set(bitstring *, int i, bool b);
 
 void bitstring_append(bitstring *, bool b);
+bool bitstring_pop(bitstring *);
 
 void bitstring_concat(bitstring *bits, const bitstring *other_bits);
 
@@ -32,3 +33,4 @@ bitstring *bitstring_substring(const bitstring *, int start, int stop);
 //  have a serialization + (deserialisation) function ?
 const char *bitstring_to_bytes(const bitstring *);
 
+// TODO: constructor from bool array ?

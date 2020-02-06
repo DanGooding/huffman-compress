@@ -72,6 +72,15 @@ void bitstring_append(bitstring *bits, bool b) {
     bitstring_set(bits, bits->length - 1, b);
 }
 
+bool bitstring_pop(bitstring *bits) {
+    if (bits->length == 0) {
+        return false;
+    }
+    bool last = bitstring_get(bits, bits->length - 1);
+    bits->length--;
+    return last;
+}
+
 void bitstring_concat(bitstring *bits, const bitstring *other_bits) {
     if (other_bits->length == 0) {
         return;
