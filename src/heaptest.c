@@ -35,6 +35,8 @@ int main(int argc, char const *argv[]) {
         heap_insert(h, a[i]);
     }
 
+    heap *h2 = heap_from_array(a, n, ge);
+
     qsort(a, n, sizeof(int), rcmp);
 
     int i = 0;
@@ -42,12 +44,16 @@ int main(int argc, char const *argv[]) {
         int top = heap_pop_top(h);
         assert(top == a[i], 
             "pop top should return next largest");
+
+        int top2 = heap_pop_top(h2);
+        assert(top2 == a[i],
+            "pop top (after heapify) should return next largest");
     }
 
     assert(h->count == 0, "insert then pop same amount should leave heap empty");
 
 
-    // TODO: test random sizes, heapify, different comparison functions
+    // TODO: test random sizes, different comparison functions
 
     heap_delete(h);
 

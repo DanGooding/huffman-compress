@@ -81,7 +81,23 @@ void swap_down(heap *h, int i) {
     }
 }
 
-heap *heap_from_array(int *elements, int length);
+// from array of elements or pointers to elements ?
+heap *heap_from_array(int *elements, int length, element_cmp cmp) {
+    
+    heap *h = heap_new_with_capacity(cmp, length);
+
+    for (int i = 0; i < length; i++) {
+        h->elements[i] = elements[i]; // shallow copy
+    }
+    h->count = length;
+
+    // heapify
+    for (int i = length - 1; i >= 0; i--) {
+        swap_down(h, i);
+    }
+
+    return h;
+}
 
 int heap_pop_top(heap *h) {
 

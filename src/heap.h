@@ -23,7 +23,7 @@ typedef struct {
 heap *heap_new_empty(element_cmp want_first_above);
 void heap_delete(heap *);
 
-heap *heap_from_array(int *a, int length); // TODO
+heap *heap_from_array(int *a, int length, element_cmp cmp); // TODO
 
 int heap_pop_top(heap *);
 
