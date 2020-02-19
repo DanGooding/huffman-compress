@@ -1,13 +1,12 @@
 
 #include <stdbool.h>
 
-typedef bool (*element_cmp) (int, int);
+typedef bool (*element_cmp) (const void *, const void *);
 
 // TODO hide internals by making heap* alias of void*
 typedef struct {
 
-    // TODO: allow storing non integers
-    int *elements;
+    void **elements;
 
     // number of elements
     int count;
@@ -21,13 +20,14 @@ typedef struct {
 } heap;
 
 heap *heap_new_empty(element_cmp want_first_above);
-void heap_delete(heap *);
+void heap_delete_only(heap *);
+void heap_delete_and_elements(heap *, void (*delete_element)(void *));
 
-heap *heap_from_array(int *a, int length, element_cmp cmp); // TODO
+heap *heap_from_array(void **, int length, element_cmp cmp);
 
-int heap_pop_top(heap *);
+void *heap_pop_top(heap *);
 
-void heap_insert(heap *, int e);
+void heap_insert(heap *, void *);
 
 
 

@@ -17,7 +17,7 @@ heap *heap_new_with_capacity(element_cmp want_first_above, int capacity) {
     h->capacity = capacity;
     h->want_first_above = want_first_above;
     
-    h->elements = malloc(sizeof(int) * h->capacity);
+    h->elements = malloc(sizeof(void *) * h->capacity);
 
     return h;
 }
@@ -26,9 +26,16 @@ heap *heap_new_empty(element_cmp cmp) {
     return heap_new_with_capacity(cmp, INITIAL_CAPACITY);
 }
 
-void heap_delete(heap *h) {
+void heap_delete_only(heap *h) {
     free(h->elements);
     free(h);
+}
+
+void heap_delete_and_elements(heap *h, void (*delete_element)(void *)) {
+    for (int i = 0; i < h->count; i++) {
+        delete_element(h->elements[i]);
+    }
+    heap_delete_only(h);
 }
 
 // swap element at index i downward to restore heap property
@@ -66,7 +73,7 @@ void swap_down(heap *h, int i) {
                 h->elements[i])) { 
             // max child larger than parent
             
-            int tmp = h->elements[i];
+            void *tmp = h->elements[i];
             h->elements[i] = h->elements[priority_i];
             h->elements[priority_i] = tmp;
             i = priority_i;
@@ -82,7 +89,7 @@ void swap_down(heap *h, int i) {
 }
 
 // from array of elements or pointers to elements ?
-heap *heap_from_array(int *elements, int length, element_cmp cmp) {
+heap *heap_from_array(void **elements, int length, element_cmp cmp) {
     
     heap *h = heap_new_with_capacity(cmp, length);
 
@@ -92,36 +99,37 @@ heap *heap_from_array(int *elements, int length, element_cmp cmp) {
     h->count = length;
 
     // heapify
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = h->count - 1; i >= 0; i--) {
         swap_down(h, i);
     }
 
     return h;
 }
 
-int heap_pop_top(heap *h) {
+void *heap_pop_top(heap *h) {
 
     if (h->count == 0) {
-        // TODO: return NULL when not just storing ints
-        return -1;
+        return NULL;
     }
 
-    int top = h->elements[0];
+    // save top
+    void *top = h->elements[0];
 
+    // replace with bottom (decreasing count)
     h->elements[0] = h->elements[--h->count];
 
+    // swap down to restore heap property
     swap_down(h, 0);
 
     return top;
-
 }
 
-void heap_insert(heap *h, int e) {
+void heap_insert(heap *h, void *e) {
 
     if (h->count == h->capacity) {
         
         h->capacity *= 2;
-        h->elements = realloc(h->elements, sizeof(int) * h->capacity);
+        h->elements = realloc(h->elements, sizeof(void *) * h->capacity);
     }
 
     h->elements[h->count++] = e;
@@ -135,7 +143,7 @@ void heap_insert(heap *h, int e) {
                 h->elements[i],
                 h->elements[parent_i])) {
             
-            int tmp = h->elements[i];
+            void *tmp = h->elements[i];
             h->elements[i] = h->elements[parent_i];
             h->elements[parent_i] = tmp;
 
