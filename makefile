@@ -12,7 +12,7 @@ DEPDIR = .d
 BINDIR = bin
 
 CC := gcc
-CFLAGS := -g
+CFLAGS := -g -Wall
 
 $(shell mkdir -p $(OBJDIR) $(DEPDIR) $(BINDIR) >/dev/null)
 
