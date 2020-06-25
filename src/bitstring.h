@@ -34,3 +34,5 @@ bitstring *bitstring_substring(const bitstring *, int start, int stop);
 const char *bitstring_to_bytes(const bitstring *);
 
 // TODO: constructor from bool array ?
+
+char *bitstring_show(const bitstring *);

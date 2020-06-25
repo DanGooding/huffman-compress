@@ -1,6 +1,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "bitstring.h"
 
@@ -64,7 +65,7 @@ int main(int argc, char const *argv[]) {
         bool b = bitstring_pop(primalities);
         assert(b == (i % 3 == 0), "pop should return correct value");
     }
-    assert(primalities->length = prev_length - k, "pop should decrease length by number popped");
+    assert(primalities->length == prev_length - k, "pop should decrease length by number popped");
 
     bitstring *double_digits = bitstring_substring(primalities, 10, 100);
 
@@ -108,6 +109,10 @@ int main(int argc, char const *argv[]) {
     for (int i = 0; i < sizeof(low_prime_bytes); i++) {
         assert(low_prime_bytes[i] == bytes[i], "to_bytes should give correct bytes");
     }
+
+    char *str = bitstring_show(primalities);
+    assert(strncmp(str, "001101010001010001010001", 24) == 0, "show should give correct string");
+    free(str);
 
     bitstring_delete(primalities);
     bitstring_delete(double_digits);

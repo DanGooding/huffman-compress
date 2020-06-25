@@ -129,3 +129,12 @@ const char *bitstring_to_bytes(const bitstring *bits) {
     // TODO: give number also ? - else useless
     return bits->bytes;
 }
+
+char *bitstring_show(const bitstring *bits) {
+    char *str = malloc(sizeof(char) * (bits->length + 1));
+    str[bits->length] = '\0';
+    for (int i = 0; i < bits->length; i++) {
+        str[i] = bitstring_get(bits, i) ? '1' : '0';
+    }
+    return str;
+}
