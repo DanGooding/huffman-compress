@@ -29,5 +29,6 @@ void *heap_pop_top(heap *);
 
 void heap_insert(heap *, void *);
 
+int heap_count(heap *);
 
 

@@ -88,7 +88,7 @@ void swap_down(heap *h, int i) {
     }
 }
 
-// from array of elements or pointers to elements ?
+// shallow copies a given array of pointer to elements, then forms a heap in O(n) time
 heap *heap_from_array(void **elements, int length, element_cmp cmp) {
     
     heap *h = heap_new_with_capacity(cmp, length);
@@ -154,8 +154,10 @@ void heap_insert(heap *h, void *e) {
         }
 
     }
+}
 
-
+int heap_count(heap *h) {
+    return h->count;
 }
 
 
