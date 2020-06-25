@@ -3,6 +3,7 @@
 
 TARGET_NAMES := huffman bitstringtest heaptest
 
+huffman_SRC = huffman.c bitstring.c heap.c
 bitstringtest_SRC := bitstringtest.c bitstring.c
 heaptest_SRC := heaptest.c heap.c
 
