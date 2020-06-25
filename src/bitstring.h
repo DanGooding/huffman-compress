@@ -36,3 +36,5 @@ const char *bitstring_to_bytes(const bitstring *);
 // TODO: constructor from bool array ?
 
 char *bitstring_show(const bitstring *);
+
+int bitstring_bitlength(const bitstring *);

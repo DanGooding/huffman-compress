@@ -138,3 +138,7 @@ char *bitstring_show(const bitstring *bits) {
     }
     return str;
 }
+
+int bitstring_bitlength(const bitstring *bits) {
+    return bits->length;
+}
