@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "heap.h"
+#include "assert.h"
 
 const int n = 10;
 
@@ -33,13 +34,6 @@ bool key_equals(element *a, element *b) {
     return a->key == b->key;
 }
 
-void assert(bool condition, const char *message) {
-    if (!condition) {
-        fprintf(stderr, "Assertion Failed: %s\n", message);
-        exit(1);
-    }
-}
-
 int main(int argc, char const *argv[]) {
     srand(42);
 
@@ -62,13 +56,10 @@ int main(int argc, char const *argv[]) {
         element *prev = a[i - 1];
         element *curr = a[i];
 
-        // printf("%d vs %d: %d\n", prev->key, curr->key, rcmp(&prev, &curr));
-
         assert(prev->key >= curr->key, 
             "a[] should be descending");
     }
 
-    int i = 0;
     for (int i = 0; i < n; i++) {
         void *top = heap_pop_top(h);
         assert(key_equals(top, (void *)a[i]), 
@@ -84,11 +75,13 @@ int main(int argc, char const *argv[]) {
 
     // TODO: test random sizes, different comparison functions
 
-    heap_delete_and_elements(h, free);
+    // now empty
+    heap_delete_only(h);
     heap_delete_only(h2);
-    // for (int i = 0; i < n; i++) {
-    //     free(a[i]);
-    // }
+    for (int i = 0; i < n; i++) {
+        free(a[i]);
+    }
+    free(a);
 
     return 0;
 }

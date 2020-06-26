@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "bitstring.h"
+#include "assert.h"
 
 #define BIN_FORMAT "%d%d%d%d%d%d%d%d"
 #define BIN_PRINTF(n) \
@@ -15,13 +16,6 @@
     n & 0x04 ? 1 : 0,\
     n & 0x02 ? 1 : 0,\
     n & 0x01 ? 1 : 0
-
-void assert(bool b, const char *message) {
-    if (!b) {
-        fprintf(stderr, "assertion failed: %s\n", message);
-        abort();
-    }
-}
 
 bool is_prime(int n) {
     if (n < 2) return false;
@@ -87,7 +81,9 @@ int main(int argc, char const *argv[]) {
             "copy should have same values");
     }
 
-    bitstring_concat(multile_digits, bitstring_substring(primalities, 100, primalities->length));
+    bitstring *triple_plus_digits = bitstring_substring(primalities, 100, primalities->length);
+    bitstring_concat(multile_digits, triple_plus_digits);
+    bitstring_delete(triple_plus_digits);
     assert(multile_digits->length == n - 10, "concat should sum lengths");
 
     for (int i = 0; i < multile_digits->length; i++) {
