@@ -45,6 +45,19 @@ void tree_delete(tree_node *t) {
     free(t);
 }
 
+// returns true if every node has 0 or 2 children, 
+// and all parent pointers (excluding the root's) are correct
+bool is_valid_tree(const tree_node *t) {
+    if (t->left != NULL && t->right != NULL) {
+        return t->left->parent == t
+            && t->right->parent == t
+            && is_valid_tree(t->left)
+            && is_valid_tree(t->right);
+    }
+    return t->left == NULL && t->right == NULL;
+}
+
+
 int height(const tree_node *t) {
     if (is_leaf(t)) {
         return 0;
@@ -152,6 +165,49 @@ bitstring **get_codes_from_tree(const tree_node *tree) {
     }
 }
 
+tree_node *get_tree_from_codes(const bitstring **symbol_codes) {
+
+    tree_node *root = malloc(sizeof(tree_node));
+    *root = (tree_node) {
+        .parent = NULL,
+        .left = NULL,
+        .right = NULL,
+        .symbol = 0,
+    };
+
+    for (int i = 0; i < num_symbols; i++) {
+        const bitstring *code = symbol_codes[i];
+        tree_node *current = root;
+
+        for (int k = 0; k < bitstring_bitlength(code); k++) {
+            
+            tree_node **childp;
+            if (bitstring_get(code, k)) { // 1 = right
+                childp = &(current->right);  // TODO: is this correct
+            }else { // 0 = left
+                childp = &(current->left);
+            }
+
+            if (*childp == NULL) {
+                *childp = malloc(sizeof(tree_node));
+                **childp = (tree_node) {
+                    .parent = current,
+                    .left = NULL,
+                    .right = NULL,
+                    .symbol = 0
+                };
+            }
+
+            current = *childp;
+        }
+
+        // end of code path: symbol lives here
+        current->symbol = (symbol) i; // is this cast ok?
+    }
+
+    return root;
+}
+
 
 bitstring *encode(const symbol *message, int message_length, bitstring **symbol_codes) {
     bitstring *encoded = bitstring_new_empty();
@@ -180,6 +236,9 @@ int main(int argc, char const *argv[]) {
     free(frequencies);
 
     bitstring **codes = get_codes_from_tree(code_tree);
+
+    tree_node *recovered_tree = get_tree_from_codes((const bitstring**)codes);
+
     tree_delete(code_tree);
 
     bitstring *encoded = encode((const symbol *)message, strlen(message), codes);
