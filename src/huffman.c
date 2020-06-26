@@ -209,7 +209,7 @@ tree_node *get_tree_from_codes(const bitstring **symbol_codes) {
 }
 
 
-bitstring *encode(const symbol *message, int message_length, bitstring **symbol_codes) {
+bitstring *encode(const symbol *message, int message_length, const bitstring **symbol_codes) {
     bitstring *encoded = bitstring_new_empty();
 
     for (int i = 0; i < message_length; i++) {
@@ -221,6 +221,40 @@ bitstring *encode(const symbol *message, int message_length, bitstring **symbol_
     }
 
     return encoded;
+}
+
+symbol *decode(const bitstring *encoded, const tree_node *tree, int *result_lengthp) {
+    int capacity = 16;
+    symbol *result = malloc(sizeof(symbol) * capacity);
+    *result_lengthp = 0;
+
+    int i = 0;
+    while (i < bitstring_bitlength(encoded)) {
+        const tree_node *current = tree;
+        while (!is_leaf(current)) {
+            
+            if (i >= bitstring_bitlength(encoded)) {
+                // incomplete final symbol   // TODO: or return partial?
+                *result_lengthp = -1;
+                free(result);
+                return NULL;
+            }
+
+            if (bitstring_get(encoded, i++)) {
+                current = current->right;
+            }else {
+                current = current->left;
+            }
+        }
+
+        if (*result_lengthp == capacity) {
+            capacity *= 2;
+            result = realloc(result, sizeof(symbol) * capacity);
+        }
+
+        result[(*result_lengthp)++] = current->symbol;
+    }
+    return result;
 }
 
 int main(int argc, char const *argv[]) {
@@ -236,15 +270,26 @@ int main(int argc, char const *argv[]) {
     free(frequencies);
 
     bitstring **codes = get_codes_from_tree(code_tree);
-
-    tree_node *recovered_tree = get_tree_from_codes((const bitstring**)codes);
-
     tree_delete(code_tree);
 
-    bitstring *encoded = encode((const symbol *)message, strlen(message), codes);
+    bitstring *encoded = encode((const symbol *)message, strlen(message), (const bitstring **)codes);
+
     printf("original %ld bytes, compressed %d bytes\n", 
         strlen(message), 
         (bitstring_bitlength(encoded) + 7) / 8);
+
+    tree_node *recovered_tree = get_tree_from_codes((const bitstring **)codes);
+
+    int decoded_length;
+    symbol *decoded = decode(encoded, recovered_tree, &decoded_length);
+
+    decoded = realloc(decoded, decoded_length + 1);
+    decoded[decoded_length] = '\0';
+
+    printf("%s\n", (char *)decoded);
+
+    free(decoded);
+    tree_delete(recovered_tree);
     bitstring_delete(encoded);
 
     for (int i = 0; i < num_symbols; i++) {
