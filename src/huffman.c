@@ -74,28 +74,40 @@ bool has_lower_frequency(const void *a, const void *b) {
     return nodeA->total_frequency < nodeB->total_frequency;
 }
 
-bool is_shorter(void *a, void *b) {
+bool is_shorter(const void *a, const void *b) {
     tree_node *nodeA = (tree_node *)a;
     tree_node *nodeB = (tree_node *)b;
     return height(nodeA) < height(nodeB);
 }
 
-tree_node *build_huffman_tree(const long *symbol_frequencies, bool (*merge_heuristic)(const void *, const void *)) {
+// builds a tree for a prefix code over the symbols with nonzero frequency
+tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(const void *, const void *)) {
 
-    tree_node **trees = malloc(sizeof(tree_node) * num_symbols);
-
+    int num_present_symbols = 0;
     for (int i = 0; i < num_symbols; i++) {
-        trees[i] = malloc(sizeof(tree_node));
-        *trees[i] = (tree_node) {
-            .parent = NULL,
-            .left = NULL,
-            .right = NULL,
-            .total_frequency = symbol_frequencies[i],
-            .symbol = (symbol) i
-        };
+        if (symbol_frequencies[i] > 0) {
+            num_present_symbols++;
+        }
+    }
+    if (num_present_symbols == 0) return NULL;
+
+    tree_node **trees = malloc(sizeof(tree_node) * num_present_symbols);
+
+    for (int i = 0, j = 0; i < num_symbols; i++) {
+        if (symbol_frequencies[i] > 0) {
+            trees[j] = malloc(sizeof(tree_node));
+            *trees[j] = (tree_node) {
+                .parent = NULL,
+                .left = NULL,
+                .right = NULL,
+                .total_frequency = symbol_frequencies[i],
+                .symbol = (symbol) i
+            };
+            j++;
+        }
     }
 
-    heap *h = heap_from_array((void **)trees, num_symbols, merge_heuristic);
+    heap *h = heap_from_array((void **)trees, num_present_symbols, merge_heuristic);
 
     while (h->count > 1) {
         tree_node *t1 = heap_pop_top(h);
@@ -124,38 +136,20 @@ tree_node *build_huffman_tree(const long *symbol_frequencies, bool (*merge_heuri
     return code_tree;
 }
 
-tree_node *build_uniform_tree() {
-    int depth = symbol_bitsize;
-    int num_nodes = (1 << (depth + 1)) - 1;
+// build a prefix code where more common symbols have shorter codes
+tree_node *build_huffman_tree(const long *symbol_frequencies) {
+    return build_tree(symbol_frequencies, has_lower_frequency);
+}
 
-    tree_node **nodeps = malloc(sizeof(tree_node *) * num_nodes);
-    for (int i = 0; i < num_nodes; i++) {
-        // calloc to default members to NULL (or 0)
-        nodeps[i] = calloc(1, sizeof(tree_node));
-    }
-
-    int min_leaf = (1 << depth) - 1;
-
-    for (int i = 0; i < num_nodes; i++) {
-        if (i >= min_leaf) { // a leaf
-            nodeps[i]->symbol = (symbol) (i - min_leaf);
-        }else {
-            nodeps[i]->left  = nodeps[2 * i + 1];
-            nodeps[i]->right = nodeps[2 * i + 2];
-        }
-        if (i != 0) {
-            nodeps[i]->parent = nodeps[(i - 1) / 2];
-        }
-    }
-
-    tree_node *root = nodeps[0];
-    free(nodeps);
-    return root;
+// build a prefix code where (present) symbols have (almost) uniform code length
+tree_node *build_uniform_tree(const long *symbol_frequencies) {
+    return build_tree(symbol_frequencies, is_shorter);
 }
 
 bitstring **get_codes_from_tree(const tree_node *tree) {
 
-    bitstring **symbol_codes = malloc(sizeof(bitstring *) * num_symbols);
+    // NULL for symbols without a code
+    bitstring **symbol_codes = calloc(num_symbols, sizeof(bitstring *));
 
     const tree_node *current = tree;
     
@@ -206,6 +200,8 @@ tree_node *get_tree_from_codes(const bitstring **symbol_codes) {
 
     for (int i = 0; i < num_symbols; i++) {
         const bitstring *code = symbol_codes[i];
+        if (code == NULL) continue; // don't insert symbols with no code
+
         tree_node *current = root;
 
         for (int k = 0; k < bitstring_bitlength(code); k++) {
@@ -288,6 +284,7 @@ symbol *decode(const bitstring *encoded, const tree_node *tree, int *result_leng
 
 int main(int argc, char const *argv[]) {
     
+    // TODO: 0 or 1 symbol -> crash  (0 length bitstrings)
     const char *message = "the quick brown fox jumps over the lazy dog";
 
     long *frequencies = calloc(num_symbols, sizeof(long));
@@ -295,7 +292,7 @@ int main(int argc, char const *argv[]) {
         frequencies[(symbol)message[i]]++;
     }
 
-    tree_node *code_tree = build_uniform_tree();
+    tree_node *code_tree = build_huffman_tree(frequencies);
     free(frequencies);
 
     bitstring **codes = get_codes_from_tree(code_tree);
@@ -303,9 +300,11 @@ int main(int argc, char const *argv[]) {
 
     bitstring *encoded = encode((const symbol *)message, strlen(message), (const bitstring **)codes);
 
-    printf("original %ld bytes, compressed %d bytes\n", 
-        strlen(message), 
-        (bitstring_bitlength(encoded) + 7) / 8);
+    int original_length = strlen(message);
+    int new_length = (bitstring_bitlength(encoded) + 7) / 8;
+    printf("original %d bytes, compressed %d bytes (%d %%)\n", 
+        original_length, new_length,
+        (new_length * 100) / original_length);
 
     tree_node *recovered_tree = get_tree_from_codes((const bitstring **)codes);
 
@@ -322,7 +321,7 @@ int main(int argc, char const *argv[]) {
     bitstring_delete(encoded);
 
     for (int i = 0; i < num_symbols; i++) {
-        bitstring_delete(codes[i]);
+        if (codes[i] != NULL) bitstring_delete(codes[i]);
     }
     free(codes);
     
