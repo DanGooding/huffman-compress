@@ -80,7 +80,7 @@ bool is_shorter(void *a, void *b) {
     return height(nodeA) < height(nodeB);
 }
 
-tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(const void *, const void *)) {
+tree_node *build_huffman_tree(const long *symbol_frequencies, bool (*merge_heuristic)(const void *, const void *)) {
 
     tree_node **trees = malloc(sizeof(tree_node) * num_symbols);
 
@@ -122,6 +122,35 @@ tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(co
     free(trees);
 
     return code_tree;
+}
+
+tree_node *build_uniform_tree() {
+    int depth = symbol_bitsize;
+    int num_nodes = (1 << (depth + 1)) - 1;
+
+    tree_node **nodeps = malloc(sizeof(tree_node *) * num_nodes);
+    for (int i = 0; i < num_nodes; i++) {
+        // calloc to default members to NULL (or 0)
+        nodeps[i] = calloc(1, sizeof(tree_node));
+    }
+
+    int min_leaf = (1 << depth) - 1;
+
+    for (int i = 0; i < num_nodes; i++) {
+        if (i >= min_leaf) { // a leaf
+            nodeps[i]->symbol = (symbol) (i - min_leaf);
+        }else {
+            nodeps[i]->left  = nodeps[2 * i + 1];
+            nodeps[i]->right = nodeps[2 * i + 2];
+        }
+        if (i != 0) {
+            nodeps[i]->parent = nodeps[(i - 1) / 2];
+        }
+    }
+
+    tree_node *root = nodeps[0];
+    free(nodeps);
+    return root;
 }
 
 bitstring **get_codes_from_tree(const tree_node *tree) {
@@ -266,7 +295,7 @@ int main(int argc, char const *argv[]) {
         frequencies[(symbol)message[i]]++;
     }
 
-    tree_node *code_tree = build_tree(frequencies, has_lower_frequency);
+    tree_node *code_tree = build_uniform_tree();
     free(frequencies);
 
     bitstring **codes = get_codes_from_tree(code_tree);
