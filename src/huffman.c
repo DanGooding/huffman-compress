@@ -91,10 +91,23 @@ tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(co
     }
     if (num_present_symbols == 0) return NULL;
 
+    bool add_dummy = false;
+    int dummy;
+    if (num_present_symbols == 1) {
+        // 1 symbol can fit in a tree of height 0
+        // but a zero length code doesn't work
+        // so include a dummy symbol in the code
+        add_dummy = true;
+        num_present_symbols++;
+        
+        const int def = 1, alt = 2;
+        dummy = symbol_frequencies[def] == 0 ? def : alt;
+    }
+
     tree_node **trees = malloc(sizeof(tree_node) * num_present_symbols);
 
     for (int i = 0, j = 0; i < num_symbols; i++) {
-        if (symbol_frequencies[i] > 0) {
+        if (symbol_frequencies[i] > 0 || (add_dummy && i == dummy)) {
             trees[j] = malloc(sizeof(tree_node));
             *trees[j] = (tree_node) {
                 .parent = NULL,
@@ -284,8 +297,7 @@ symbol *decode(const bitstring *encoded, const tree_node *tree, int *result_leng
 
 int main(int argc, char const *argv[]) {
     
-    // TODO: 0 or 1 symbol -> crash  (0 length bitstrings)
-    const char *message = "the quick brown fox jumps over the lazy dog";
+    const char *message = "the quick brown fox jumped over the lazy dog";
 
     long *frequencies = calloc(num_symbols, sizeof(long));
     for (int i = 0; message[i] != '\0'; i++) {
