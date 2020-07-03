@@ -1,8 +1,10 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "bitstring.h"
+#include "writeutils.h"
 
 const size_t INITIAL_CAPACITY_BYTES = 1;
 
@@ -24,6 +26,7 @@ bitstring *bitstring_new_empty() {
     return bitstring_new_with_capacity(INITIAL_CAPACITY_BYTES);
 }
 void bitstring_delete(bitstring *bits) {
+    if (bits == NULL) return;
     free(bits->bytes);
     free(bits);
 }
@@ -141,4 +144,62 @@ char *bitstring_show(const bitstring *bits) {
 
 int bitstring_bitlength(const bitstring *bits) {
     return bits->length;
+}
+
+bool bitstring_equals(const bitstring *bits1, const bitstring *bits2) {
+    if (bits1->length != bits2->length) {
+        return false;
+    }
+    // TODO: speedup by comparing full bytes
+    for (int i = 0; i < bits1->length; i++) {
+        if (bitstring_get(bits1, i) != bitstring_get(bits2, i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool bitstring_write(const bitstring *bits, FILE *f) {
+    int bitlength = bits->length;
+
+    if (!write_int(bitlength, f)) {
+        return false;
+    }
+
+    int byte_length = (bitlength + 7) / 8; // round up
+
+    // zero out the bits which pad this to a whole number of bytes
+    // (so we totally control what is written)
+    int padding = byte_length * 8 - bitlength;
+    bits->bytes[byte_length - 1] &= ~((1 << padding) - 1);
+    
+    if (fwrite(bits->bytes, sizeof(char), byte_length, f) != byte_length) {
+        return false;
+    }
+    return true;
+}
+
+bitstring *bitstring_read(FILE *f) {
+    int bitlength = -1;
+
+    if (!read_int(&bitlength, f)) {
+        return NULL;
+    }
+    
+    if (bitlength < 0) {
+        return NULL;
+    }else if (bitlength == 0) {
+        return bitstring_new_empty();
+    }
+
+    bitstring *bits = bitstring_new_with_capacity(bitlength);
+
+    int bytelength = (bitlength + 7) / 8;
+    if (fread(bits->bytes, sizeof(char), bytelength, f) != bytelength) {
+        bitstring_delete(bits);
+        return NULL;
+    }
+    bits->length = bitlength;
+
+    return bits;
 }

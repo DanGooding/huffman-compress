@@ -16,6 +16,7 @@ typedef struct {
 } bitstring;
 
 bitstring *bitstring_new_empty();
+// free a bitstring's memory. does nothing if given NULL
 void bitstring_delete(bitstring *);
 bitstring *bitstring_copy(const bitstring *);
 
@@ -38,3 +39,13 @@ const char *bitstring_to_bytes(const bitstring *);
 char *bitstring_show(const bitstring *);
 
 int bitstring_bitlength(const bitstring *);
+
+bool bitstring_equals(const bitstring *, const bitstring *);
+
+// write a bitstring to a stream.
+// returns false on failure
+bool bitstring_write(const bitstring *, FILE *);
+// read a bitstring (in the format of bitstring_write) from a stream
+// returns NULL on failure
+bitstring *bitstring_read(FILE *);
+

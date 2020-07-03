@@ -159,6 +159,13 @@ tree_node *build_uniform_tree(const long *symbol_frequencies) {
     return build_tree(symbol_frequencies, is_shorter);
 }
 
+void delete_codes(bitstring **codes) {
+    for (int i = 0; i < num_symbols; i++) {
+        bitstring_delete(codes[i]);
+    }
+    free(codes);
+}
+
 bitstring **get_codes_from_tree(const tree_node *tree) {
 
     // NULL for symbols without a code
@@ -295,47 +302,162 @@ symbol *decode(const bitstring *encoded, const tree_node *tree, int *result_leng
     return result;
 }
 
+void compress(const char *src_filename, const char *dest_filename) {
+
+    FILE *f_src = fopen(src_filename, "rb");
+    if (f_src == NULL) {
+        fprintf(stderr, "failed to open %s\n", src_filename);
+        exit(1);
+    }
+    
+    fseek(f_src, 0, SEEK_END);
+    long src_size = ftell(f_src);
+    rewind(f_src);
+
+    unsigned char *content = malloc(sizeof(unsigned char) * src_size);
+    
+    if (fread(content, sizeof(unsigned char), src_size, f_src) != src_size) {
+        fprintf(stderr, "failed to read whole of %s\n", src_filename);
+        fclose(f_src);
+        free(content);
+        exit(1);
+    }
+
+    fclose(f_src);
+
+
+    long *symbol_frequencies = calloc(num_symbols, sizeof(long));
+    for (int i = 0; i < src_size; i++) {
+        symbol_frequencies[content[i]]++;
+    }
+
+    tree_node *tree = build_huffman_tree(symbol_frequencies);
+    free(symbol_frequencies);
+
+    bitstring **codes = get_codes_from_tree(tree);
+    tree_delete(tree);
+
+
+    bitstring *encoded = encode(content, src_size, (const bitstring **)codes);
+    free(content);
+    
+
+    // TODO: don't overwrite an existing file -- race condition
+    FILE *f_dest = fopen(dest_filename, "wb");
+    if (f_dest == NULL) {
+        fprintf(stderr, "failed to open %s for writing\n", dest_filename);
+        
+        delete_codes(codes);
+        bitstring_delete(encoded);
+
+        exit(1);
+    }
+
+    // write the symbols' codes
+    bitstring *empty_bitstring = bitstring_new_empty();
+    for (int i = 0; i < num_symbols; i++) {
+        
+        const bitstring *code = (codes[i] == NULL) ? empty_bitstring : codes[i];
+        bool success = bitstring_write(code, f_dest);
+
+        if (!success) {
+            fprintf(stderr, "error saving codes\n");
+
+            delete_codes(codes);
+            bitstring_delete(encoded);
+            fclose(f_dest);
+            bitstring_delete(empty_bitstring);
+
+            exit(1);
+        }
+    }
+    delete_codes(codes);
+    bitstring_delete(empty_bitstring);
+
+    // write the encoded content
+    if (!bitstring_write(encoded, f_dest)) {
+        fprintf(stderr, "error saving encoded string\n");
+
+        bitstring_delete(encoded);
+        fclose(f_dest);
+        exit(1);
+    }
+
+    bitstring_delete(encoded);
+    fclose(f_dest);
+}
+
+void decompress(const char *src_filename, const char *dest_filename) {
+
+    FILE *f_src = fopen(src_filename, "rb");
+    if (f_src == NULL) {
+        fprintf(stderr, "failed to open %s\n", src_filename);
+        exit(1);
+    }
+
+    bitstring **codes = malloc(sizeof(bitstring *) * num_symbols);
+    for (int i = 0; i < num_symbols; i++) {
+        bitstring *code = bitstring_read(f_src);
+
+        if (code == NULL) {
+            fprintf(stderr, "error reading codes from %s\n", src_filename);
+            fclose(f_src);
+            delete_codes(codes);
+            exit(1);
+
+        }else if (bitstring_bitlength(code) == 0) {
+            // a zero bitstring is saved to indicate this symbol has no code
+            codes[i] = NULL;
+            bitstring_delete(code);
+        }else {
+            codes[i] = code;
+        }
+    }
+
+    bitstring *encoded = bitstring_read(f_src);
+    if (encoded == NULL) {
+        fprintf(stderr, "error reading encoded content\n");
+        fclose(f_src);
+        delete_codes(codes);
+        exit(1);
+    }
+
+    // TODO: assert: at end of file
+    fclose(f_src);
+
+    tree_node *cmp_tree = get_tree_from_codes((const bitstring **)codes);
+    delete_codes(codes);
+
+    int decoded_size;
+    symbol *decoded = decode(encoded, cmp_tree, &decoded_size);
+    bitstring_delete(encoded);
+    tree_delete(cmp_tree);
+
+
+    FILE *f_dest = fopen(dest_filename, "wb");
+    if (f_dest == NULL) {
+        fprintf(stderr, "failed to open %s for writing\n", dest_filename);
+        free(decoded);
+        exit(1);
+    }
+    if (fwrite(decoded, sizeof(symbol), decoded_size, f_dest) != decoded_size) {
+        fprintf(stderr, "failed to write to %s\n", dest_filename);
+        free(decoded);
+        fclose(f_dest);
+        exit(1);
+    }
+    fclose(f_dest);
+    free(decoded);
+}
+
 int main(int argc, char const *argv[]) {
     
-    const char *message = "the quick brown fox jumped over the lazy dog";
+    const char *original = "alice.txt";
+    const char *compressed = "alice.txt.hffmn";
+    const char *decompressed = "alice1.txt";
 
-    long *frequencies = calloc(num_symbols, sizeof(long));
-    for (int i = 0; message[i] != '\0'; i++) {
-        frequencies[(symbol)message[i]]++;
-    }
+    compress(original, compressed);
+    decompress(compressed, decompressed);
 
-    tree_node *code_tree = build_huffman_tree(frequencies);
-    free(frequencies);
-
-    bitstring **codes = get_codes_from_tree(code_tree);
-    tree_delete(code_tree);
-
-    bitstring *encoded = encode((const symbol *)message, strlen(message), (const bitstring **)codes);
-
-    int original_length = strlen(message);
-    int new_length = (bitstring_bitlength(encoded) + 7) / 8;
-    printf("original %d bytes, compressed %d bytes (%d %%)\n", 
-        original_length, new_length,
-        (new_length * 100) / original_length);
-
-    tree_node *recovered_tree = get_tree_from_codes((const bitstring **)codes);
-
-    int decoded_length;
-    symbol *decoded = decode(encoded, recovered_tree, &decoded_length);
-
-    decoded = realloc(decoded, decoded_length + 1);
-    decoded[decoded_length] = '\0';
-
-    printf("%s\n", (char *)decoded);
-
-    free(decoded);
-    tree_delete(recovered_tree);
-    bitstring_delete(encoded);
-
-    for (int i = 0; i < num_symbols; i++) {
-        if (codes[i] != NULL) bitstring_delete(codes[i]);
-    }
-    free(codes);
-    
     return 0;
 }
