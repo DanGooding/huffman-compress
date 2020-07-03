@@ -30,6 +30,9 @@ $(TARGET_NAMES) : % : $(BINDIR)/%
 $(TARGETS) : $(BINDIR)/% : $$(addsuffix .o, $$(addprefix $(OBJDIR)/, $$(basename $$($$*_SRC))))
 	$(LINK.c) $^ -o $@
 
+.PHONY: all
+all: $(TARGETS)
+
 .PHONY: clean
 clean: 
 	rm -f $(TARGETS) $(OBJDIR)/*.o $(DEPDIR)/*.d
