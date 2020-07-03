@@ -436,9 +436,9 @@ void decompress(const char *src_filename, const char *dest_filename) {
 
 int main(int argc, char const *argv[]) {
     
-    const char *original     = "alice-1000.txt";
-    const char *compressed   = "alice-1000.txt.hffmn";
-    const char *decompressed = "alice-1000-dec.txt";
+    const char *original     = "samples/alice-1000.txt";
+    const char *compressed   = "samples/alice-1000.txt.hffmn";
+    const char *decompressed = "samples/alice-1000-dec.txt";
 
     compress(original, compressed);
     decompress(compressed, decompressed);
