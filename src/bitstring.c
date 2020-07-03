@@ -165,6 +165,9 @@ bool bitstring_write(const bitstring *bits, FILE *f) {
     if (!write_int(bitlength, f)) {
         return false;
     }
+    if (bitlength == 0) {
+        return true;
+    }
 
     int byte_length = (bitlength + 7) / 8; // round up
 
