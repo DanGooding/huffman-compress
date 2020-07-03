@@ -4,7 +4,7 @@
 TARGET_NAMES := huffman bitstringtest heaptest writeutilstest
 
 huffman_SRC = huffman.c bitstring.c heap.c writeutils.c
-bitstringtest_SRC := bitstringtest.c bitstring.c
+bitstringtest_SRC := bitstringtest.c bitstring.c writeutils.c
 heaptest_SRC := heaptest.c heap.c
 writeutilstest_SRC := writeutilstest.c writeutils.c
 
