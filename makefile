@@ -1,11 +1,12 @@
 
 # makefile adapted from https://stackoverflow.com/a/34587043
 
-TARGET_NAMES := huffman bitstringtest heaptest
+TARGET_NAMES := huffman bitstringtest heaptest writeutilstest
 
 huffman_SRC = huffman.c bitstring.c heap.c
 bitstringtest_SRC := bitstringtest.c bitstring.c
 heaptest_SRC := heaptest.c heap.c
+writeutilstest_SRC := writeutilstest.c writeutils.c
 
 SRCDIR = src
 OBJDIR = obj
