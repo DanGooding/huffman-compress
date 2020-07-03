@@ -310,25 +310,15 @@ void compress(const char *src_filename, const char *dest_filename) {
         exit(1);
     }
     
-    fseek(f_src, 0, SEEK_END);
-    long src_size = ftell(f_src);
-    rewind(f_src);
-
-    unsigned char *content = malloc(sizeof(unsigned char) * src_size);
-    
-    if (fread(content, sizeof(unsigned char), src_size, f_src) != src_size) {
-        fprintf(stderr, "failed to read whole of %s\n", src_filename);
-        fclose(f_src);
-        free(content);
-        exit(1);
-    }
-
-    fclose(f_src);
-
-
     long *symbol_frequencies = calloc(num_symbols, sizeof(long));
-    for (int i = 0; i < src_size; i++) {
-        symbol_frequencies[content[i]]++;
+
+    int capacity = 1 << 15;  // TODO: find a good size
+    unsigned char *buf = malloc(sizeof(unsigned char) * capacity);
+    int nread;
+    while ((nread = fread(buf, sizeof(unsigned char), capacity, f_src)) > 0) {
+        for (int i = 0; i < nread; i++) {
+            symbol_frequencies[buf[i]]++;
+        }
     }
 
     tree_node *tree = build_huffman_tree(symbol_frequencies);
@@ -337,18 +327,13 @@ void compress(const char *src_filename, const char *dest_filename) {
     bitstring **codes = get_codes_from_tree(tree);
     tree_delete(tree);
 
-
-    bitstring *encoded = encode(content, src_size, (const bitstring **)codes);
-    free(content);
-    
-
-    // TODO: don't overwrite an existing file -- race condition
+    // TODO: don't overwrite an existing file -- (avoid race condition when fix)
     FILE *f_dest = fopen(dest_filename, "wb");
     if (f_dest == NULL) {
         fprintf(stderr, "failed to open %s for writing\n", dest_filename);
         
+        fclose(f_src);
         delete_codes(codes);
-        bitstring_delete(encoded);
 
         exit(1);
     }
@@ -363,28 +348,37 @@ void compress(const char *src_filename, const char *dest_filename) {
         if (!success) {
             fprintf(stderr, "error saving codes\n");
 
+            fclose(f_src);
             delete_codes(codes);
-            bitstring_delete(encoded);
             fclose(f_dest);
             bitstring_delete(empty_bitstring);
 
             exit(1);
         }
     }
-    delete_codes(codes);
     bitstring_delete(empty_bitstring);
 
-    // write the encoded content
-    if (!bitstring_write(encoded, f_dest)) {
-        fprintf(stderr, "error saving encoded string\n");
-
+    
+    rewind(f_src);
+    while ((nread = fread(buf, sizeof(unsigned char), capacity, f_src)) > 0) {
+        bitstring *encoded = encode(buf, nread, (const bitstring **)codes);
+        bool success = bitstring_write(encoded, f_dest);
         bitstring_delete(encoded);
-        fclose(f_dest);
-        exit(1);
-    }
+        if (!success) {
+            fprintf(stderr, "error saving content\n");
 
-    bitstring_delete(encoded);
+            fclose(f_src);
+            delete_codes(codes);
+            fclose(f_dest);
+            free(buf);
+
+            exit(1);
+        }
+    }
+    fclose(f_src);
+    delete_codes(codes);
     fclose(f_dest);
+    free(buf);
 }
 
 void decompress(const char *src_filename, const char *dest_filename) {
@@ -414,47 +408,37 @@ void decompress(const char *src_filename, const char *dest_filename) {
         }
     }
 
-    bitstring *encoded = bitstring_read(f_src);
-    if (encoded == NULL) {
-        fprintf(stderr, "error reading encoded content\n");
-        fclose(f_src);
-        delete_codes(codes);
-        exit(1);
-    }
-
-    // TODO: assert: at end of file
-    fclose(f_src);
-
-    tree_node *cmp_tree = get_tree_from_codes((const bitstring **)codes);
+    tree_node *tree = get_tree_from_codes((const bitstring **)codes);
     delete_codes(codes);
 
-    int decoded_size;
-    symbol *decoded = decode(encoded, cmp_tree, &decoded_size);
-    bitstring_delete(encoded);
-    tree_delete(cmp_tree);
-
-
     FILE *f_dest = fopen(dest_filename, "wb");
-    if (f_dest == NULL) {
-        fprintf(stderr, "failed to open %s for writing\n", dest_filename);
+
+    bitstring *encoded;
+    while ((encoded = bitstring_read(f_src)) != NULL) {
+        int decoded_length;
+        unsigned char *decoded = decode(encoded, tree, &decoded_length);
+        bitstring_delete(encoded);
+        if (fwrite(decoded, sizeof(unsigned char), decoded_length, f_dest) != decoded_length) {
+            fprintf(stderr, "error writing to file\n");
+            fclose(f_src);
+            fclose(f_dest);
+            tree_delete(tree);
+            free(decoded);
+            exit(1);
+        }
         free(decoded);
-        exit(1);
     }
-    if (fwrite(decoded, sizeof(symbol), decoded_size, f_dest) != decoded_size) {
-        fprintf(stderr, "failed to write to %s\n", dest_filename);
-        free(decoded);
-        fclose(f_dest);
-        exit(1);
-    }
+
+    fclose(f_src);
     fclose(f_dest);
-    free(decoded);
+    tree_delete(tree);
 }
 
 int main(int argc, char const *argv[]) {
     
-    const char *original = "alice.txt";
-    const char *compressed = "alice.txt.hffmn";
-    const char *decompressed = "alice1.txt";
+    const char *original     = "alice-1000.txt";
+    const char *compressed   = "alice-1000.txt.hffmn";
+    const char *decompressed = "alice-1000-dec.txt";
 
     compress(original, compressed);
     decompress(compressed, decompressed);
