@@ -73,22 +73,22 @@ int main(int argc, char const *argv[]) {
             "substring values should be same as superstring");
     }
 
-    bitstring *multile_digits = bitstring_copy(double_digits);
-    assert(multile_digits->length == double_digits->length, "copy should have same length");
+    bitstring *multiple_digits = bitstring_copy(double_digits);
+    assert(multiple_digits->length == double_digits->length, "copy should have same length");
     for (int i = 0; i < double_digits->length; i++) {
         assert(
-            bitstring_get(multile_digits, i) == bitstring_get(double_digits, i), 
+            bitstring_get(multiple_digits, i) == bitstring_get(double_digits, i), 
             "copy should have same values");
     }
 
     bitstring *triple_plus_digits = bitstring_substring(primalities, 100, primalities->length);
-    bitstring_concat(multile_digits, triple_plus_digits);
+    bitstring_concat(multiple_digits, triple_plus_digits);
     bitstring_delete(triple_plus_digits);
-    assert(multile_digits->length == n - 10, "concat should sum lengths");
+    assert(multiple_digits->length == n - 10, "concat should sum lengths");
 
-    for (int i = 0; i < multile_digits->length; i++) {
+    for (int i = 0; i < multiple_digits->length; i++) {
         assert(
-            bitstring_get(primalities, i + 10) == bitstring_get(multile_digits, i),
+            bitstring_get(primalities, i + 10) == bitstring_get(multiple_digits, i),
             "concat should preserve values"
         );
     }
@@ -112,7 +112,7 @@ int main(int argc, char const *argv[]) {
 
     bitstring_delete(primalities);
     bitstring_delete(double_digits);
-    bitstring_delete(multile_digits);
+    bitstring_delete(multiple_digits);
 
     return 0;
 }
