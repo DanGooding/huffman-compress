@@ -102,11 +102,36 @@ void bitstring_concat(bitstring *bits, const bitstring *other_bits) {
         bits->bytes = realloc(bits->bytes, bits->byte_capacity);
     }
 
-    for (int i = 0; i < other_bits->length; i++) {
-        // TODO: copy byte by byte ? using bit shifting
-        bitstring_append(bits, bitstring_get(other_bits, i));
-    }
+    
+    int offset = bits->length % 8;
 
+    int num_bytes_to_copy = (other_bits->length + 7) / 8;
+    int start_byte = bits->length / 8;
+
+    // copy bytes from other_bits (src) to bits (dest), 
+    // shifting along if bits doesn't end on a byte boundary
+    for (int i = 0; i < num_bytes_to_copy; i++) {
+        if (i == 0) {
+            // zero only the last `8 - offset` bits
+            bits->bytes[start_byte + i] &= ~ ((1 << (8 - offset)) - 1);
+        }
+        // copy high bits from source into to low bits of dest
+        bits->bytes[start_byte + i] |= ((unsigned char)other_bits->bytes[i]) >> offset;
+
+        if (i < num_bytes_to_copy - 1 || 
+            other_bits->length - (num_bytes_to_copy - 1) * 8 > 8 - offset) {
+            // zero the next byte and copy the low bits of this byte into it 
+            //  may not be done for the last byte of src if its occupied bits (LHS of inequality)
+            //  fit into the previously filled byte of dest (RHS)
+
+            // zero whole of next byte (current zeroed last time)
+            bits->bytes[start_byte + i + 1] = 0;
+
+            // copy low bits from source into high bits of next byte of dest
+            bits->bytes[start_byte + i + 1] |= other_bits->bytes[i] << (8 - offset);
+        }
+    }
+    bits->length = new_length;
 }
 
 bitstring *bitstring_substring(const bitstring *bits, int start, int stop) {

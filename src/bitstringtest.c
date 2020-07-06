@@ -17,6 +17,14 @@
     n & 0x02 ? 1 : 0,\
     n & 0x01 ? 1 : 0
 
+bitstring *make_random_bitstring(int length) {
+    bitstring *bits = bitstring_new_empty();
+    for (int i = 0; i < length; i++) {
+        bitstring_append(bits, (rand() % 2) == 0);
+    }
+    return bits;
+}
+
 bool is_prime(int n) {
     if (n < 2) return false;
     for (int i = 2; i < n; i++) {
@@ -120,6 +128,27 @@ int main(int argc, char const *argv[]) {
     bitstring_delete(double_digits);
     bitstring_delete(multiple_digits);
 
+
+    srand(42);
+    bitstring **strings = malloc(sizeof(bitstring *) * n);
+    bitstring *all = bitstring_new_empty();
+
+    for (int i = 0; i < n; i++) {
+        strings[i] = make_random_bitstring(i % 30);
+        bitstring_concat(all, strings[i]);
+    }
+
+    int base = 0;
+    for (int i = 0; i < n; i++) {
+        bitstring *sub = bitstring_substring(all, base, base + bitstring_bitlength(strings[i]));
+        assert(bitstring_equals(sub, strings[i]), "concat should preserve substring");
+        base += bitstring_bitlength(strings[i]);
+        bitstring_delete(sub);
+        bitstring_delete(strings[i]);
+    }
+    bitstring_delete(all);
+    free(strings);
+    
     return 0;
 }
 
