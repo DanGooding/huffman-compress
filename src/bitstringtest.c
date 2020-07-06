@@ -82,6 +82,12 @@ int main(int argc, char const *argv[]) {
     }
 
     bitstring *triple_plus_digits = bitstring_substring(primalities, 100, primalities->length);
+    assert(triple_plus_digits->length == primalities->length - 100, "substring should give correct length");
+    for (int i = 0; i < triple_plus_digits->length; i++) {
+        assert(bitstring_get(triple_plus_digits, i) == bitstring_get(primalities, i + 100),
+            "substring should copy values");
+    }
+
     bitstring_concat(multiple_digits, triple_plus_digits);
     bitstring_delete(triple_plus_digits);
     assert(multiple_digits->length == n - 10, "concat should sum lengths");
