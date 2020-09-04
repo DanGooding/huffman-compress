@@ -92,7 +92,7 @@ tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(co
     if (num_present_symbols == 0) return NULL;
 
     bool add_dummy = false;
-    int dummy;
+    int dummy = 0;
     if (num_present_symbols == 1) {
         // 1 symbol can fit in a tree of height 0
         // but a zero length code doesn't work
@@ -100,6 +100,7 @@ tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(co
         add_dummy = true;
         num_present_symbols++;
         
+        // dummy must be different from the one real character
         const int def = 1, alt = 2;
         dummy = symbol_frequencies[def] == 0 ? def : alt;
     }
