@@ -1,6 +1,8 @@
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "bitstring.h"
 #include "huffman.h"
@@ -139,12 +141,24 @@ void decompress(const char *src_filename, const char *dest_filename) {
 
 int main(int argc, char const *argv[]) {
     
-    const char *original     = "samples/alice-100.txt";
-    const char *compressed   = "samples/alice-100.txt.hffmn";
-    const char *decompressed = "samples/alice-100-dec.txt";
+    bool mode_compress = true;
+    int i = 1;
+    if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--compress") == 0) {
+        mode_compress = true;
+        i++;
+    }else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--decompress") == 0) {
+        mode_compress = false;
+        i++;
+    }
 
-    compress(original, compressed);
-    decompress(compressed, decompressed);
+    const char *src_filename = argv[i++];
+    const char *dest_filename = argv[i++];
+
+    if (mode_compress) {
+        compress(src_filename, dest_filename);
+    }else {
+        decompress(src_filename, dest_filename);
+    }
 
     return 0;
 }
