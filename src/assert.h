@@ -1,3 +1,7 @@
+#ifndef ASSERT_H
+#define ASSERT_H
+
+#include <stdio.h>
 
 #define assert(cond, message)\
     if (!(cond)) {\
@@ -6,6 +10,6 @@
         exit(1);\
     }
 
-void assert_breakpoint() {
-    free(NULL); // put a breakpoint here
-}
+void assert_breakpoint();
+
+#endif // ASSERT_H
