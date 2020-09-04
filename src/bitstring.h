@@ -1,3 +1,5 @@
+#ifndef BITSTRING_H
+#define BITSTRING_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -49,3 +51,4 @@ bool bitstring_write(const bitstring *, FILE *);
 // returns NULL on failure
 bitstring *bitstring_read(FILE *);
 
+#endif // BITSTRING_H

@@ -1,3 +1,5 @@
+#ifndef HEAP_H
+#define HEAP_H
 
 #include <stdbool.h>
 
@@ -31,4 +33,4 @@ void heap_insert(heap *, void *);
 
 int heap_count(heap *);
 
-
+#endif // HEAP_H
