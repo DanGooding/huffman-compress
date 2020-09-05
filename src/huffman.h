@@ -27,6 +27,7 @@ typedef struct tree_node {
 
 
 tree_node *build_huffman_tree(const long *symbol_frequencies);
+tree_node *build_uniform_tree(const long *symbol_frequencies);
 void tree_delete(tree_node *t);
 
 bitstring **get_codes_from_tree(const tree_node *tree);

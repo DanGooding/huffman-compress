@@ -17,12 +17,8 @@ bool is_leaf(const tree_node *t) {
 
 // free all nodes in a tree
 void tree_delete(tree_node *t) {
-    if (t->left != NULL) {
-        tree_delete(t->left);
-    }
-    if (t->right != NULL) {
-        tree_delete(t->right);
-    }
+    if (t->left != NULL) tree_delete(t->left);
+    if (t->right != NULL) tree_delete(t->right);
     free(t);
 }
 
@@ -38,16 +34,6 @@ bool is_valid_tree(const tree_node *t) {
     return t->left == NULL && t->right == NULL;
 }
 
-
-int height(const tree_node *t) {
-    if (is_leaf(t)) {
-        return 0;
-    }
-    int hl = height(t->left) + 1;
-    int hr = height(t->right) + 1;
-    return (hl > hr) ? hl : hr;
-}
-
 bool has_lower_frequency(const void *a, const void *b) {
     tree_node *nodeA = (tree_node *)a;
     tree_node *nodeB = (tree_node *)b;
@@ -55,14 +41,35 @@ bool has_lower_frequency(const void *a, const void *b) {
     return nodeA->total_frequency < nodeB->total_frequency;
 }
 
-bool is_shorter(const void *a, const void *b) {
-    tree_node *nodeA = (tree_node *)a;
-    tree_node *nodeB = (tree_node *)b;
-    return height(nodeA) < height(nodeB);
+// if tree has a single node, add another leaf, to make a valid prefix code
+tree_node *ensure_not_singleton_tree(tree_node *tree) {
+    if (!is_leaf(tree)) {
+        return tree;
+    }
+
+    tree_node *dummy_leaf = malloc(sizeof(tree_node));
+    dummy_leaf->left = NULL;
+    dummy_leaf->right = NULL;
+
+    // make sure it doesn't have the same symbol as `tree`
+    const symbol def = 1, alt = 2;
+    dummy_leaf->symbol = tree->symbol == def ? alt : def;
+
+    tree_node *parent = malloc(sizeof(tree_node));
+    *parent = (tree_node) {
+        .parent = NULL,
+        .left = tree,
+        .right = dummy_leaf
+    };
+
+    tree->parent = parent;
+    dummy_leaf->parent = parent;
+
+    return parent;
 }
 
 // builds a tree for a prefix code over the symbols with nonzero frequency
-tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(const void *, const void *)) {
+tree_node *build_tree_bottom_up(const long *symbol_frequencies, bool (*merge_heuristic)(const void *, const void *)) {
 
     int num_present_symbols = 0;
     for (int i = 0; i < num_symbols; i++) {
@@ -72,24 +79,10 @@ tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(co
     }
     if (num_present_symbols == 0) return NULL;
 
-    bool add_dummy = false;
-    int dummy = 0;
-    if (num_present_symbols == 1) {
-        // 1 symbol can fit in a tree of height 0
-        // but a zero length code doesn't work
-        // so include a dummy symbol in the code
-        add_dummy = true;
-        num_present_symbols++;
-        
-        // dummy must be different from the one real character
-        const int def = 1, alt = 2;
-        dummy = symbol_frequencies[def] == 0 ? def : alt;
-    }
-
     tree_node **trees = malloc(sizeof(tree_node) * num_present_symbols);
 
     for (int i = 0, j = 0; i < num_symbols; i++) {
-        if (symbol_frequencies[i] > 0 || (add_dummy && i == dummy)) {
+        if (symbol_frequencies[i] > 0) {
             trees[j] = malloc(sizeof(tree_node));
             *trees[j] = (tree_node) {
                 .parent = NULL,
@@ -128,17 +121,58 @@ tree_node *build_tree(const long *symbol_frequencies, bool (*merge_heuristic)(co
     heap_delete_only(h);
     free(trees);
 
-    return code_tree;
+    return ensure_not_singleton_tree(code_tree);
 }
 
 // build a prefix code where more common symbols have shorter codes
 tree_node *build_huffman_tree(const long *symbol_frequencies) {
-    return build_tree(symbol_frequencies, has_lower_frequency);
+    return build_tree_bottom_up(symbol_frequencies, has_lower_frequency);
 }
 
 // build a prefix code where (present) symbols have (almost) uniform code length
 tree_node *build_uniform_tree(const long *symbol_frequencies) {
-    return build_tree(symbol_frequencies, is_shorter);
+    
+    // include symbols which appear at least once
+    int num_present_symbols = 0;
+    for (int i = 0; i < num_symbols; i++) {
+        if (symbol_frequencies[i] > 0) {
+            num_present_symbols++;
+        }
+    }
+    symbol *present_symbols = malloc(sizeof(symbol) * num_present_symbols);
+    for (int i = 0, j = 0; i < num_symbols && j < num_present_symbols; i++) {
+        if (symbol_frequencies[i] > 0) {
+            present_symbols[j++] = (symbol)i;
+        }
+    }
+
+    // build tree with one leaf per present symbol
+    int num_nodes = 2 * num_present_symbols - 1;
+    tree_node **nodes = malloc(sizeof(tree_node *) * num_nodes);
+    for (int i = 0; i < num_nodes; i++) {
+        nodes[i] = malloc(sizeof(tree_node));
+    }
+
+    int first_leaf_index = num_nodes - num_present_symbols;    
+    for (int i = 0; i < num_nodes; i++) {
+        bool is_leaf = i >= first_leaf_index;
+
+        nodes[i]->parent = i == 0 ? NULL : nodes[(i - 1) / 2];
+        if (is_leaf) {
+            nodes[i]->left = NULL;
+            nodes[i]->right = NULL;
+            nodes[i]->symbol = present_symbols[i - first_leaf_index];
+        }else {
+            nodes[i]->left  = nodes[2 * i + 1];
+            nodes[i]->right = nodes[2 * i + 2];
+        }
+    }
+
+    free(present_symbols);
+
+    tree_node *tree = nodes[0];
+    free(nodes);
+    return ensure_not_singleton_tree(tree);
 }
 
 void delete_codes(bitstring **codes) {
