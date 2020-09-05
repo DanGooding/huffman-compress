@@ -5,8 +5,8 @@ High frequency bytes in the input are represented by short bit sequences, whilst
 This type of compression is good for text, but bad at images (it may make a jpeg larger!)
 
 ## Usage
-    $ ./bin/huffman -c <original> <compressed_dest>
-    $ ./bin/huffman -d <compressed> <decompressed_dest>
+    $ ./bin/huffman -c <original_file> <compressed_dest>
+    $ ./bin/huffman -d <compressed_file> <decompressed_dest>
 
 ## Performance
 
