@@ -37,7 +37,7 @@ bool is_prime(int n) {
 
 const int n = 10000;
 
-int main(int argc, char const *argv[]) {
+int main() {
 
     bitstring *primalities = bitstring_new_empty();
 
@@ -109,9 +109,9 @@ int main(int argc, char const *argv[]) {
 
 
     const char low_prime_bytes[] = {
-        0b00110101, // 0 - 7
-        0b00010100, // 8 - 15
-        0b01010001  // 16 - 23
+        0x35, // 0b00110101, // 0 - 7
+        0x14, // 0b00010100, // 8 - 15
+        0x51  // 0b01010001  // 16 - 23
     };
 
     const char *bytes = bitstring_to_bytes(primalities);

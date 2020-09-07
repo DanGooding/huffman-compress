@@ -34,7 +34,7 @@ bool key_equals(element *a, element *b) {
     return a->key == b->key;
 }
 
-int main(int argc, char const *argv[]) {
+int main() {
     srand(42);
 
     element **a = malloc(sizeof(element *) * n);

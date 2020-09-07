@@ -75,7 +75,7 @@ void test_for_input(tree_builder build_tree, const symbol *message, int message_
     tree_delete(tree_again);
 }
 
-int main(int argc, char const *argv[]) {
+int main() {
     
     tree_builder builders[] = {
         build_huffman_tree,
