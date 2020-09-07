@@ -8,7 +8,7 @@
 // write the 4 bytes of an int as big endian
 // most significant byte at lowest address
 // returns true on success
-bool write_int(uint32_t i, FILE *f) {  // TODO: is the conversion to unsigned ok?
+bool write_uint(uint32_t i, FILE *f) {  // TODO: is the conversion to unsigned ok?
     uint8_t buf[4];
     buf[0] = (i >> 24) & 0xff;
     buf[1] = (i >> 16) & 0xff;
@@ -17,9 +17,13 @@ bool write_int(uint32_t i, FILE *f) {  // TODO: is the conversion to unsigned ok
     return fwrite(buf, sizeof(uint8_t), 4, f) == 4;
 }
 
+bool write_int(int32_t i, FILE *f) {
+    return write_uint((uint32_t)i, f);
+}
+
 // read the 4 bytes of an int as big endian
 // returns true on success
-bool read_int(uint32_t *i, FILE *f) {
+bool read_uint(uint32_t *i, FILE *f) {
     uint8_t buf[4];
     if (fread(buf, sizeof(uint8_t), 4, f) != 4) {
         return false;
@@ -32,9 +36,13 @@ bool read_int(uint32_t *i, FILE *f) {
     return true;
 }
 
+bool read_int(int32_t *i, FILE *f) {
+    return read_uint((uint32_t *)i, f);
+}
+
 // write the 8 bytes of a long as bit endian
 // returns true on success
-bool write_long(uint64_t i, FILE *f) {  // TODO: is the conversion to unsigned ok?
+bool write_ulong(uint64_t i, FILE *f) {  // TODO: is the conversion to unsigned ok?
     uint8_t buf[8];
     buf[0] = (i >> 56) & 0xff;
     buf[1] = (i >> 48) & 0xff;
@@ -47,9 +55,13 @@ bool write_long(uint64_t i, FILE *f) {  // TODO: is the conversion to unsigned o
     return fwrite(buf, sizeof(uint8_t), 8, f) == 8;
 }
 
+bool write_long(int64_t i, FILE *f) {
+    return write_ulong((uint64_t)i, f);
+}
+
 // read the 8 bytes of a long as big endian
 // returns true on success
-bool read_long(uint64_t *i, FILE *f) {
+bool read_ulong(uint64_t *i, FILE *f) {
     uint8_t buf[8];
     if (fread(buf, sizeof(uint8_t), 8, f) != 8) {
         return false;
@@ -64,4 +76,8 @@ bool read_long(uint64_t *i, FILE *f) {
     *i |= (uint64_t)buf[6] << 8;
     *i |= (uint64_t)buf[7];
     return true;
+}
+
+bool read_long(int64_t *i, FILE *f) {
+    return read_ulong((uint64_t *)i, f);
 }
